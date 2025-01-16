@@ -61,6 +61,18 @@
     <ClCompile Include="Calibration.cpp">
       <Filter>Source Files\Calibration</Filter>
     </ClCompile>
+    <ClCompile Include="能量梯度+ROI.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="区域增长（种子点）+ROI.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="分水岭算法.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="边缘检测.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="StudyCorr.h">
@@ -71,6 +83,9 @@
     </QtMoc>
     <QtMoc Include="ComputeDialog.h">
       <Filter>Header Files\GUI</Filter>
+    </QtMoc>
+    <QtMoc Include="区域增长QT.cpp">
+      <Filter>Source Files</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>

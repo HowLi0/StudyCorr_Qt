@@ -1,6 +1,4 @@
 ﻿#pragma once
-#ifndef COMPUTEDIALOG_H
-#define COMPUTEDIALOG_H
 #include <QDialog>
 #include <QTableWidget>
 #include <QPushButton>
@@ -32,4 +30,3 @@ private:
     QComboBox* CameraComboBox;
     QStringList FileNames;//用于储存文件信息
 };
-#endif // COMPUTEDIALOG_H

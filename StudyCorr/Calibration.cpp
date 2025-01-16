@@ -1,36 +1,139 @@
 ﻿#include "Calibration.h"
 
-
-    std::vector<cv::Mat> img1_frames;
-    std::vector<cv::Mat> img2_frames;
-
-    bool ChessCalibration::PerformStereoCalibration(const std::vector<std::string>& cameraPosition1Files, const std::vector<std::string>& cameraPosition2Files)
+    ChessCalibration::ChessCalibration(int rows, int cols, float squareSize, QStringList chessPath)
     {
-        if (cameraPosition1Files.size() != cameraPosition2Files.size())
+        this->boardSize = cv::Size(rows,cols);
+        this->squareSize = squareSize;
+        // 将 QStringList 转换为 std::vector<std::string>
+        for (const QString& path : chessPath) {
+            this->chessPath.push_back(path.toStdString());
+        }
+    }
+
+    ChessCalibration::ChessCalibration(int rows, int cols, float squareSize, QStringList chessPathLeft, QStringList chessPathRight)
+    {
+        this->boardSize = cv::Size(rows, cols);
+        this->squareSize = squareSize;
+        // 将 QStringList 转换为 std::vector<std::string>
+        for (const QString& path : chessPathLeft) {
+            this->chessPathLeft.push_back(path.toUtf8().constData());
+           // std::cout << path.toUtf8().constData() << std::endl;
+        }
+        for (const QString& path : chessPathRight) {
+            this->chessPathRight.push_back(path.toUtf8().constData());
+        }
+    }
+
+    ChessCalibration::~ChessCalibration()
+    {
+    }
+
+    bool ChessCalibration::prefareMonocularCalibration()
+    {
+        if (chessPath.size()==0)
         {
+            std::cerr << "There is nothing for calibration." << std::endl;
+            return false;
+        }
+
+        for (int i = 0; i < boardSize.height; ++i)
+        {
+            for (int j = 0; j < boardSize.width; ++j)
+            { 
+                this->objectPoints.emplace_back(j * squareSize, i * squareSize, 0.00f);
+            }
+        }
+        this->objectPointsVec = std::vector<std::vector<cv::Point3f>> (chessPath.size(), objectPoints);
+        for (int i = 0; i < chessPath.size(); ++i)
+        {
+            cv::Mat img1 = cv::imread(chessPath[i]);
+            cv::Mat gray1;
+            cv::cvtColor(img1, gray1, cv::COLOR_BGR2GRAY);
+
+            std::vector<cv::Point2f> corners1;
+            bool found = cv::findChessboardCorners(gray1, boardSize, corners1);
+
+            if (found)
+            {
+                cv::cornerSubPix(gray1, corners1, cv::Size(11, 11), cv::Size(-1, -1), cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 30, 0.01));
+                this->imagePointsVec1.push_back(corners1);
+                drawCornersAndAxes(img1, corners1, boardSize, found);
+                this->img1_frames.push_back(img1);
+            }
+            else
+            {
+                if (!found)
+                {
+                    std::cerr << "Chessboard corners not found in image: " << chessPath[i] << std::endl;
+                }
+            }
+        }
+        return true;
+    }
+
+    void ChessCalibration::startMonocularCompute()
+    {
+        if (imagePointsVec1.empty())
+        {
+            std::cerr << "No valid chessboard corners were found in the provided images." << std::endl;
+            exit(1);
+        }
+
+        this->cameraMatrix1 = cv::Mat::eye(3, 3, CV_64F);
+
+        // Camera calibration for both cameras
+        double rms = cv::calibrateCamera(objectPointsVec, imagePointsVec1, cv::Size(img1_frames[0].cols, img1_frames[0].rows), cameraMatrix1, distCoeffs1, rvecs1, tvecs1);
+        std::cout << "RMS error of camera： " << rms << std::endl;
+
+        // 输出相机内参、畸变系数、外参
+        std::cout << "Camera Matrix：" << std::endl << cameraMatrix1 << std::endl;
+        std::cout << "Distortion Coefficients：" << std::endl << distCoeffs1 << std::endl;
+        for (int i = 0; i < chessPath.size(); i++)
+        {
+            // 将旋转向量转换为旋转矩阵
+            cv::Mat R ,T;
+            cv::Rodrigues(rvecs1[i], R);
+            T = tvecs1[i];
+            std::cout << "Rotation Matrix: " << std::endl << R << std::endl;
+            std::cout << "Translation Vector: " << std::endl << tvecs1 [i]<< std::endl;
+            cv::Mat projMatrix=computeProjMatrix(R, T, cameraMatrix1);
+            this->projMatrixVec1.push_back(projMatrix);
+        }
+        std::cout << "compute is over"<< std::endl;
+    }
+
+    cv::Mat ChessCalibration::computeProjMatrix(const cv::Mat R, const cv::Mat T, const cv::Mat cameraMatrix) const
+    {
+        // Construct projection matrix for Camera : P = K * [R | T]
+        cv::Mat projMatrix = cv::Mat::zeros(3, 4, CV_64F);
+        cv::Mat RT;
+        cv::hconcat(R, T, RT);  // Combine R and T into a 3x4 matrix
+        projMatrix = cameraMatrix * RT;
+        return projMatrix;
+    }
+
+
+    bool ChessCalibration::prefareStereoCalibration()
+    {
+        if (chessPathLeft.size() != chessPathRight.size()) {
             std::cerr << "The number of images from Camera1 and Camera2 should be the same." << std::endl;
             return false;
         }
 
-        std::vector<std::vector<cv::Point2f>> imagePoints1, imagePoints2;
-        cv::Size boardSize(11, 8); // Adjust to your chessboard size
-        float squareSize = 3.0f; // Adjust to your chessboard square size
+        for (int i = 0; i < boardSize.height; ++i) {
+            for (int j = 0; j < boardSize.width; ++j) {
+                this->objectPoints.emplace_back(j * squareSize, i * squareSize, 0.00f);
+            }
+        }
 
-        std::vector<cv::Point3f> objectPoints;
-        for (int i = 0; i < boardSize.height; ++i)
-            for (int j = 0; j < boardSize.width; ++j)
-                objectPoints.emplace_back(j * squareSize, i * squareSize, 0);
+        this->objectPointsVec = std::vector<std::vector<cv::Point3f>>(chessPathLeft.size(), objectPoints);
 
-        std::vector<std::vector<cv::Point3f>> objectPointsVec(cameraPosition1Files.size(), objectPoints);
+        for (int i = 0; i < chessPathLeft.size(); ++i) {
+            cv::Mat img1 = cv::imread(chessPathLeft[i]);
+            cv::Mat img2 = cv::imread(chessPathRight[i]);
 
-        for (size_t i = 0; i < cameraPosition1Files.size(); ++i)
-        {
-            cv::Mat img1 = cv::imread(cameraPosition1Files[i]);
-            cv::Mat img2 = cv::imread(cameraPosition2Files[i]);
-
-            if (img1.empty() || img2.empty())
-            {
-                std::cerr << "Failed to load images: " << cameraPosition1Files[i] << ", " << cameraPosition2Files[i] << std::endl;
+            if (img1.empty() || img2.empty()) {
+                std::cerr << "Failed to load images: " << chessPathLeft[i] << ", " << chessPathRight[i] << std::endl;
                 return false;
             }
 
@@ -39,108 +142,64 @@
             cv::cvtColor(img2, gray2, cv::COLOR_BGR2GRAY);
 
             std::vector<cv::Point2f> corners1, corners2;
-            bool found1 = cv::findChessboardCorners(gray1, boardSize, corners1);
-            bool found2 = cv::findChessboardCorners(gray2, boardSize, corners2);
+            bool found1 = cv::findChessboardCorners(gray1, boardSize, corners1,
+                cv::CALIB_CB_ADAPTIVE_THRESH | cv::CALIB_CB_NORMALIZE_IMAGE);
+            bool found2 = cv::findChessboardCorners(gray2, boardSize, corners2,
+                cv::CALIB_CB_ADAPTIVE_THRESH | cv::CALIB_CB_NORMALIZE_IMAGE);
 
-            if (found1 && found2)
-            {
-                cv::cornerSubPix(gray1, corners1, cv::Size(11, 11), cv::Size(-1, -1), cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 30, 0.01));
-                cv::cornerSubPix(gray2, corners2, cv::Size(11, 11), cv::Size(-1, -1), cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 30, 0.01));
-                imagePoints1.push_back(corners1);
-                imagePoints2.push_back(corners2);
+            if (found1 && found2) {
+                cv::cornerSubPix(gray1, corners1, cv::Size(11, 11), cv::Size(-1, -1),
+                    cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 30, 0.01));
+                cv::cornerSubPix(gray2, corners2, cv::Size(11, 11), cv::Size(-1, -1),
+                    cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 30, 0.01));
+
+                this->imagePointsVec1.push_back(corners1);
+                this->imagePointsVec2.push_back(corners2);
 
                 drawCornersAndAxes(img1, corners1, boardSize, found1);
                 drawCornersAndAxes(img2, corners2, boardSize, found2);
 
-                // Store processed images
-                img1_frames.push_back(img1);
-                img2_frames.push_back(img2);
-            }
-            else
-            {
-                if (!found1)
-                {
-                    std::cerr << "Chessboard corners not found in image: " << cameraPosition1Files[i] << std::endl;
-                }
-                if (!found2)
-                {
-                    std::cerr << "Chessboard corners not found in image: " << cameraPosition2Files[i] << std::endl;
-                }
+                this->img1_frames.push_back(img1);
+                this->img2_frames.push_back(img2);
             }
         }
+        return true;
+    }
 
-        if (imagePoints1.empty() || imagePoints2.empty())
-        {
+    void ChessCalibration::startStereoCalibration()
+    {
+        if (imagePointsVec1.empty() || imagePointsVec2.empty()) {
             std::cerr << "No valid chessboard corners were found in the provided images." << std::endl;
-            return false;
+            return;
         }
 
-        cameraMatrix1 = cv::Mat::eye(3, 3, CV_64F);
-        cameraMatrix2 = cv::Mat::eye(3, 3, CV_64F);
+        double rms1 = cv::calibrateCamera(objectPointsVec, imagePointsVec1, img1_frames[0].size(), cameraMatrix1, distCoeffs1, rvecs1, tvecs1);
+        double rms2 = cv::calibrateCamera(objectPointsVec, imagePointsVec2, img2_frames[0].size(), cameraMatrix2, distCoeffs2, rvecs2, tvecs2);
 
-        // Camera calibration for both cameras
-        cv::Mat cameraMatrixA, distCoeffsA, cameraMatrixB, distCoeffsB;
-        std::vector<cv::Mat> rvecsA, tvecsA, rvecsB, tvecsB;
-        cv::calibrateCamera(objectPointsVec, imagePoints1, cv::Size(img1_frames[0].cols, img1_frames[0].rows), cameraMatrixA, distCoeffsA, rvecsA, tvecsA);
-        cv::calibrateCamera(objectPointsVec, imagePoints2, cv::Size(img1_frames[0].cols, img1_frames[0].rows), cameraMatrixB, distCoeffsB, rvecsB, tvecsB);
-
-        double rms = cv::stereoCalibrate(objectPointsVec, imagePoints1, imagePoints2,
+        cv::Mat R, T, E, F;
+        double  rms= cv::stereoCalibrate(objectPointsVec, imagePointsVec1, imagePointsVec2,
             cameraMatrix1, distCoeffs1,
             cameraMatrix2, distCoeffs2,
-            cv::Size(img1_frames[0].cols, img1_frames[0].rows), R, T, E, F,
-            cv::CALIB_FIX_INTRINSIC,
-            cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 100, 1e-5));
+            img1_frames[0].size(), R, T, E, F,
+            cv::CALIB_FIX_INTRINSIC);
 
-        std::cout << "Stereo Calibration done with RMS error = " << rms << std::endl;
+        std::cout << "RMS error of camera1: " << rms1 << std::endl;
+        std::cout << "RMS error of camera2: " << rms2 << std::endl;
+        std::cout << "Stereo calibration RMS error:" << rms << std::endl;
 
-        // Evaluation of calibration result
-        std::cout << "Evaluating stereo calibration results..." << std::endl;
-        double totalError = 0.0;
-        double err = 0.0;
-        std::vector<cv::Point2f> imagePoints1Reproj, imagePoints2Reproj;
-        std::cout << "Calibration error for each image:" << std::endl;
-
-        for (size_t i = 0; i < objectPointsVec.size(); ++i)
+        for (int i = 0; i < chessPathLeft.size(); i++)
         {
-            // Reproject 3D points to both cameras
-            cv::projectPoints(objectPointsVec[i], rvecsA[i], tvecsA[i], cameraMatrixA, distCoeffsA, imagePoints1Reproj);
-            cv::projectPoints(objectPointsVec[i], rvecsB[i], tvecsB[i], cameraMatrixB, distCoeffsB, imagePoints2Reproj);
-
-            // Calculate reprojection error for Camera 1
-            cv::Mat imgPoints1Mat = cv::Mat(1, imagePoints1[i].size(), CV_32FC2);
-            cv::Mat imagePoints1ReprojMat = cv::Mat(1, imagePoints1Reproj.size(), CV_32FC2);
-            for (int j = 0; j < imagePoints1[i].size(); j++)
-            {
-                imagePoints1ReprojMat.at<cv::Vec2f>(0, j) = cv::Vec2f(imagePoints1Reproj[j].x, imagePoints1Reproj[j].y);
-                imgPoints1Mat.at<cv::Vec2f>(0, j) = cv::Vec2f(imagePoints1[i][j].x, imagePoints1[i][j].y);
-            }
-            double error1 = cv::norm(imgPoints1Mat, imagePoints1ReprojMat, cv::NORM_L2);
-            error1 /= imagePoints1[i].size();
-
-            // Calculate reprojection error for Camera 2
-            cv::Mat imgPoints2Mat = cv::Mat(1, imagePoints2[i].size(), CV_32FC2);
-            cv::Mat imagePoints2ReprojMat = cv::Mat(1, imagePoints2Reproj.size(), CV_32FC2);
-            for (int j = 0; j < imagePoints2[i].size(); j++)
-            {
-                imagePoints2ReprojMat.at<cv::Vec2f>(0, j) = cv::Vec2f(imagePoints2Reproj[j].x, imagePoints2Reproj[j].y);
-                imgPoints2Mat.at<cv::Vec2f>(0, j) = cv::Vec2f(imagePoints2[i][j].x, imagePoints2[i][j].y);
-            }
-            double error2 = cv::norm(imgPoints2Mat, imagePoints2ReprojMat, cv::NORM_L2);
-            error2 /= imagePoints2[i].size();
-
-            // Compute average error for the image
-            err = (error1 + error2) / 2.0;
-            totalError += err;
-
-            std::cout << "  Image " << i + 1 << " average error: " << err << " pixels" << std::endl;
+            // 将旋转向量转换为旋转矩阵
+            cv::Mat R1, R2,T1,T2;
+            cv::Rodrigues(rvecs1[i], R1);
+            cv::Rodrigues(rvecs2[i], R2);
+            T1 = tvecs1[i];
+            T2 = tvecs2[i];
+            cv::Mat projMatrix1 = computeProjMatrix(R1, T1, cameraMatrix1);
+            cv::Mat projMatrix2 = computeProjMatrix(R2, T2, cameraMatrix2);
+            this->projMatrixVec1.push_back(projMatrix1);
+            this->projMatrixVec2.push_back(projMatrix2);
         }
-
-        // Calculate overall average reprojection error
-        double meanError = totalError / objectPointsVec.size();
-        std::cout << "Overall mean reprojection error: " << meanError << " pixels" << std::endl;
-
-        std::cout << "Evaluation completed!" << std::endl;
-        return true;
     }
 
 

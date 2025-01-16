@@ -71,18 +71,18 @@ void CalibrationDialog::SetupUi()
 void CalibrationDialog::OnHeaderClicked(int section)
 {
 
-    if (section == 1 || section == 2)
+    if (section == 1)
     {
-        FileNames = QFileDialog::getOpenFileNames(this, tr("Select Files"), "", tr("Images (*.bmp *.png *.jpg)"));
-        if (!FileNames.isEmpty())
+        LeftFilePath = QFileDialog::getOpenFileNames(this, tr("Select Files"), "", tr("Images (*.bmp *.png *.jpg)"));
+        if (!LeftFilePath.isEmpty())
         {
             //设置行数显示文件
-            TableWidget->setRowCount(FileNames.count());
-            for (int i = 0; i < FileNames.count(); ++i)
+            TableWidget->setRowCount(LeftFilePath.count());
+            for (int i = 0; i < LeftFilePath.count(); ++i)
             {
                 //在*******************dialog***************中显示
                 //提取文件名
-                QFileInfo fileInfo(FileNames[i]);
+                QFileInfo fileInfo(LeftFilePath[i]);
                 QString fileName = fileInfo.fileName();
                 //设置文件个数和√
                 QTableWidgetItem* stateItem = new QTableWidgetItem;
@@ -92,28 +92,41 @@ void CalibrationDialog::OnHeaderClicked(int section)
                 TableWidget->setItem(i, section, new QTableWidgetItem(fileName));
             }
         }
-
     }
-}
-QStringList CalibrationDialog::GetLeftFileNames()const {
-    QStringList fileNames;
-    for (int row = 0; row < TableWidget->rowCount(); ++row) {
-        QTableWidgetItem* item = TableWidget->item(row, 0); // 左相机文件路径在第二列
-        if (item) {
-            fileNames.append(item->text());
+    else if (section == 2)
+    {
+        RightFilePath = QFileDialog::getOpenFileNames(this, tr("Select Files"), "", tr("Images (*.bmp *.png *.jpg)"));
+        if (!RightFilePath.isEmpty())
+        {
+            //设置行数显示文件
+            TableWidget->setRowCount(RightFilePath.count());
+            for (int i = 0; i < RightFilePath.count(); ++i)
+            {
+                //在*******************dialog***************中显示
+                //提取文件名
+                QFileInfo fileInfo(RightFilePath[i]);
+                QString fileName = fileInfo.fileName();
+                //设置文件个数和√
+                QTableWidgetItem* stateItem = new QTableWidgetItem;
+                stateItem->setCheckState(Qt::Checked);
+                TableWidget->setItem(i, 0, stateItem);
+                // tableWidget->setItem(i, section, new QTableWidgetItem(fileNames[0]));
+                TableWidget->setItem(i, section, new QTableWidgetItem(fileName));
+            }
         }
     }
-    return fileNames;
+}
+QStringList CalibrationDialog::GetLeftFilePath()const 
+{
+    QStringList filepath;
+    filepath = LeftFilePath;
+    return  filepath;
 }
 
-QStringList CalibrationDialog::GetRightFileNames() const {
-    QStringList fileNames;
-    for (int row = 0; row < TableWidget->rowCount(); ++row) {
-        QTableWidgetItem* item = TableWidget->item(row, 1); // 右相机文件路径在第三列
-        if (item) {
-            fileNames.append(item->text());
-        }
-    }
-    return fileNames;
+QStringList CalibrationDialog::GetRightFilePath() const
+{
+    QStringList filepath;
+    filepath = RightFilePath;
+    return  filepath;
 }
 

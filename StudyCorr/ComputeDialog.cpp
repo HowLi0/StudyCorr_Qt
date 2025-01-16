@@ -96,6 +96,7 @@ void ComputeDialog::OnHeaderClicked(int section)
 
     }
 }
+
 QStringList ComputeDialog::GetLeftFileNames()const {
     QStringList fileNames;
     for (int row = 0; row < TableWidget->rowCount(); ++row) {
