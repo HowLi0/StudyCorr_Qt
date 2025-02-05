@@ -33,6 +33,12 @@
     <Filter Include="Source Files\Calibration">
       <UniqueIdentifier>{12485c8c-3d2d-4ce8-bbdd-245bf59bbea0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\ROI">
+      <UniqueIdentifier>{c7e78ab6-2409-4cb5-b3fb-76ddf766bfd8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\ROI">
+      <UniqueIdentifier>{d1283a0e-6299-4cf4-a4f8-63415c734f50}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="StudyCorr.qrc">
@@ -73,6 +79,15 @@
     <ClCompile Include="边缘检测.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Drawable.cpp">
+      <Filter>Source Files\ROI</Filter>
+    </ClCompile>
+    <ClCompile Include="Shape.cpp">
+      <Filter>Source Files\ROI</Filter>
+    </ClCompile>
+    <ClCompile Include="customPixmapItem.cpp">
+      <Filter>Source Files\ROI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="StudyCorr.h">
@@ -87,6 +102,9 @@
     <QtMoc Include="区域增长QT.cpp">
       <Filter>Source Files</Filter>
     </QtMoc>
+    <QtMoc Include="Drawable.h">
+      <Filter>Header Files\ROI</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />
@@ -94,6 +112,12 @@
   <ItemGroup>
     <ClInclude Include="Calibration.h">
       <Filter>Header Files\Calibration</Filter>
+    </ClInclude>
+    <ClInclude Include="customPixmapItem.h">
+      <Filter>Header Files\ROI</Filter>
+    </ClInclude>
+    <ClInclude Include="Shape.h">
+      <Filter>Header Files\ROI</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

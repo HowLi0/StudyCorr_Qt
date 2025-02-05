@@ -1,33 +1,13 @@
 ﻿#pragma once
 
-#include <QtWidgets/QMainWindow>
 #include "ui_StudyCorr.h"
 #include "CalibrationDialog.h"
 #include "ComputeDialog.h"
 #include "Calibration.h"
-#include<QMenu>
-#include<QToolBar>
-#include<QDebug>
-#include<QPushButton>
-#include<QStatusBar>
-#include<QLabel>
-#include<QDockWidget>
-#include <QGraphicsView>
-#include <QHeaderView>
-#include <QGraphicsScene>
-#include <QGraphicsPixmapItem>
-#include <QHBoxLayout>
-#include<QPainter>
-#include <QAction>
-#include <QFileDialog>
-#include <QDir>
-#include <QMessageBox>
-#include <QJsonObject>
-#include <QJsonDocument>
-#include <QFile>
-#include<QTreeWidget>
-#include<QSpinBox>
-#include<QTimer>
+#include"customPixmapItem.h"
+#include<QtGui>
+#include<QtCore>
+#include <QtWidgets>
 
 
 class StudyCorr : public QMainWindow
@@ -35,7 +15,7 @@ class StudyCorr : public QMainWindow
     Q_OBJECT
 
 public:
-    StudyCorr(QWidget *parent = nullptr);
+    StudyCorr(QWidget* parent = nullptr);
     ~StudyCorr();
     static int CalibrationIndex;
     static int ComputeIndex;
@@ -56,11 +36,23 @@ private:
     QAction* CalibrationButton;
     QAction* ComputeButton;
     QToolBar* chessToolBar;
+    QSpinBox* squareSizeSpinBox;
+    QSpinBox* rowsSpinBox;
     QToolBar* computeToolBar;
+    QAction* rectAction;
+    QAction* circleAction ;
+    QAction* polygonAction ;
+    QAction* cropPolygonAction ;
+    QAction* dragROIAction ;
+    QAction* deleteAction;
+    QAction* seedPoints;
+    QAction* autoROI ;
+    QSpinBox* stepSizeSpinBox;
+    QSpinBox* subSizeSpinBox;
     bool hasRunCalibrationToolbars = false;	// 添加一个布尔变量，确保只调用一次
     bool hasRunComputeToolbars = false;	// 添加一个布尔变量，确保只调用一次
     //****************************************************图像显示****************************************************//
-    int currentFrameIndex =0;  // 当前显示的帧索引
+    int currentFrameIndex = 0;  // 当前显示的帧索引
     QTimer* timer = nullptr;
     //view<<scence<<item
     // 创建一个 QGraphicsView 以显示场景
@@ -70,16 +62,18 @@ private:
     QGraphicsScene* scene1 = nullptr; ;
     QGraphicsScene* scene2 = nullptr; ;
     // 加载图像并添加到场景中
-    QGraphicsPixmapItem* item1 = nullptr; ;
-    QGraphicsPixmapItem* item2 = nullptr; ;
+    CustomPixmapItem* item1 = nullptr; ;
+    CustomPixmapItem* item2 = nullptr; ;
     //显示图像名称
     QGraphicsTextItem* img1TextItem = nullptr;
     QGraphicsTextItem* img2TextItem = nullptr;
 
+    Drawable* drawable1;  // 用于绘制的对象
+
 
 private:
     Ui::StudyCorrClass ui;
-    void SetupUi(int CalibrationIndex,int ComputeIndex);
+    void SetupUi(int CalibrationIndex, int ComputeIndex);
     void CreateNewProject();
     void OpenExistingProject();
     //****************************************************标定****************************************************//

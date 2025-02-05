@@ -3,13 +3,13 @@
 int StudyCorr::CalibrationIndex = 1;
 int StudyCorr::ComputeIndex = 1;
 
-StudyCorr::StudyCorr(QWidget *parent)
-    : QMainWindow(parent)
+StudyCorr::StudyCorr(QWidget* parent)
+	: QMainWindow(parent)
 {
-    ui.setupUi(this);
+	ui.setupUi(this);
 	resize(1200, 800);
 	this->CalibrationIndex = 1;
-	SetupUi(this->CalibrationIndex,this->ComputeIndex);
+	SetupUi(this->CalibrationIndex, this->ComputeIndex);
 }
 
 StudyCorr::~StudyCorr()
@@ -68,7 +68,7 @@ void StudyCorr::SetupUi(int CalibrationIndex, int ComputeIndex)
 			ChessToolBar();
 			hasRunCalibrationToolbars = true;  // 设置标志为true，防止再次调用
 		}
-		this->CalibrationIndex ++;
+		this->CalibrationIndex++;
 		});
 
 	connect(ComputeButton, &QAction::triggered, [=]() {
@@ -81,8 +81,8 @@ void StudyCorr::SetupUi(int CalibrationIndex, int ComputeIndex)
 		this->ComputeIndex++;
 		});
 
-//	//****************************************************状态栏****************************************************//
-	//状态栏,最多有一个
+	//	//****************************************************状态栏****************************************************//
+		//状态栏,最多有一个
 	QStatusBar* stbar = new QStatusBar(this);
 	//设置到窗口中
 	setStatusBar(stbar);
@@ -113,19 +113,25 @@ void StudyCorr::SetupUi(int CalibrationIndex, int ComputeIndex)
 	//****************************************************图像显示/中心控件****************************************************//
 
 // 创建一个 QGraphicsScene 以包含图像
-    this->scene1 = new QGraphicsScene(this);
+	this->scene1 = new QGraphicsScene(this);
 	this->scene2 = new QGraphicsScene(this);
 
 	// 加载图像并添加到场景中
-	//QPixmap pixmap("C:/Users/admin/Pictures/Camera Roll/1.jpg");
-	this->item1 = new QGraphicsPixmapItem();
-	this->item2 = new QGraphicsPixmapItem();
+	this->item1 = new CustomPixmapItem();
+	this->item2 = new CustomPixmapItem();
 	scene1->addItem(item1);
 	scene2->addItem(item2);
+	scene1->setSceneRect(item1->boundingRect());
+	scene2->setSceneRect(item2->boundingRect());
+	drawable1 = new Drawable(item1);
+	static_cast<CustomPixmapItem*>(item1)->setDrawable(drawable1);
+
 
 	// 创建一个 QGraphicsView 以显示场景
 	this->view1 = new QGraphicsView(scene1, this);
 	this->view2 = new QGraphicsView(scene2, this);
+	view1->fitInView(scene1->sceneRect(), Qt::KeepAspectRatio);
+	view2->fitInView(scene2->sceneRect(), Qt::KeepAspectRatio);
 
 	//显示图像名称
 	this->img1TextItem = new QGraphicsTextItem();
@@ -255,7 +261,7 @@ void StudyCorr::CalibrationOKButtonClicked()
 {
 	qDebug() << "Dialog accepted, running onOkClicked";
 	if (calibrationDialog) {
-		LeftCameraFilePath = calibrationDialog->GetLeftFilePath();  
+		LeftCameraFilePath = calibrationDialog->GetLeftFilePath();
 		RightCameraFilePath = calibrationDialog->GetRightFilePath();// 获取文件名列表
 		// 添加顶层项
 		QTreeWidgetItem* CalibrationItem = new QTreeWidgetItem(QStringList(calibrationDialog->NameLineEdit->text()));
@@ -271,7 +277,7 @@ void StudyCorr::CalibrationOKButtonClicked()
 				// 添加子节点
 				QTreeWidgetItem* CalibrationImage = new QTreeWidgetItem(QStringList(FileName));
 				CalibrationItem->addChild(CalibrationImage);
-			
+
 				// 设置子项文本居中
 				CalibrationImage->setTextAlignment(0, Qt::AlignLeft);
 			}
@@ -306,7 +312,7 @@ void StudyCorr::CalibrationToolBar()
 	connect(ComputeButton, &QAction::triggered, [=]() {
 		CalibrationToolBar->hide(); });
 	// 连接下拉框选择变化的信号
-	connect(ComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int index){
+	connect(ComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int index) {
 		switch (index) {
 		case 0:
 			qDebug() << "Executing command for Option 1";
@@ -349,7 +355,7 @@ void StudyCorr::ChessToolBar()
 	chessToolBar->addSeparator();
 
 	// 创建选择棋盘格边长的数字输入框
-	QSpinBox* squareSizeSpinBox = new QSpinBox(this);
+	this-> squareSizeSpinBox = new QSpinBox(this);
 	squareSizeSpinBox->setMinimum(0); // 设置最小值为1（棋盘格边长不能小于1）
 	squareSizeSpinBox->setMaximum(100000); // 设置最大值
 	squareSizeSpinBox->setValue(3); // 默认边长为3
@@ -360,7 +366,7 @@ void StudyCorr::ChessToolBar()
 	chessToolBar->addSeparator();
 
 	// 创建选择棋盘格的行数和列数
-	QSpinBox* rowsSpinBox = new QSpinBox(this);
+	this->rowsSpinBox = new QSpinBox(this);
 	rowsSpinBox->setMinimum(1);
 	rowsSpinBox->setMaximum(1000);
 	rowsSpinBox->setValue(12); // 默认行数
@@ -391,7 +397,7 @@ void StudyCorr::ChessToolBar()
 	);
 	connect(StartCalibrationButton, &QAction::triggered, [=]()
 		{
-			chessCalibration = new ChessCalibration(rowsSpinBox->value(), colsSpinBox->value(), squareSizeSpinBox->value(), LeftCameraFilePath,RightCameraFilePath);
+			chessCalibration = new ChessCalibration(rowsSpinBox->value(), colsSpinBox->value(), squareSizeSpinBox->value(), LeftCameraFilePath, RightCameraFilePath);
 			bool prefare = chessCalibration->prefareStereoCalibration();
 			if (!prefare)
 			{
@@ -402,7 +408,7 @@ void StudyCorr::ChessToolBar()
 			{
 				chessCalibration->startStereoCalibration();
 			}
-			
+
 			// 避免重复创建定时器
 			if (!timer) {
 				timer = new QTimer(this);
@@ -423,7 +429,7 @@ void StudyCorr::ChessToolBar()
 
 							// 设置文字位置（图像下方）
 							img1TextItem->setPos(240, view1->height() - 300);
-							img2TextItem->setPos(240, view2->height() -300);
+							img2TextItem->setPos(240, view2->height() - 300);
 							currentFrameIndex++;
 						}
 						else {
@@ -505,6 +511,77 @@ void StudyCorr::ComputeToolBar()
 	this->computeToolBar = new QToolBar(this);
 	addToolBar(Qt::TopToolBarArea, computeToolBar);
 	computeToolBar->setAllowedAreas(Qt::TopToolBarArea);
+	// 创建按钮并连接到相应的功能
+	this->rectAction = new QAction("矩形", this);
+	this->circleAction = new QAction("圆形", this);
+	this->polygonAction = new QAction("多边形", this);
+	this->cropPolygonAction = new QAction("裁剪多边形", this);
+	this->dragROIAction = new QAction("拖动ROI", this);
+	this->deleteAction = new QAction("删除", this);
+	this->seedPoints = new QAction("种子点", this);
+	this->autoROI = new QAction("自动选取ROI", this);
+	// 创建步长的数字输入框
+	this->stepSizeSpinBox = new QSpinBox(this);
+	stepSizeSpinBox->setMinimum(0); // 设置最小值为0
+	stepSizeSpinBox->setMaximum(1000); // 设置最大值
+	stepSizeSpinBox->setValue(5); // 默认步长为5
+	stepSizeSpinBox->setSuffix("pixel"); // 显示单位
+	stepSizeSpinBox->setToolTip("输入步长（单位：像素）");
+	stepSizeSpinBox->setFixedWidth(110);
+	// 创建子集大小的数字输入框
+	this->subSizeSpinBox = new QSpinBox(this);
+	subSizeSpinBox->setMinimum(0); // 设置最小值为0
+	subSizeSpinBox->setMaximum(100); // 设置最大值
+	subSizeSpinBox->setValue(30); // 默认子集大小为30
+	subSizeSpinBox->setSuffix("pixel"); // 显示单位
+	subSizeSpinBox->setToolTip("输入子集大小（单位：像素）");
+	subSizeSpinBox->setFixedWidth(110);
+
+	computeToolBar->addAction(rectAction);
+	computeToolBar->addAction(circleAction);
+	computeToolBar->addAction(polygonAction);
+	computeToolBar->addAction(cropPolygonAction);
+	computeToolBar->addAction(dragROIAction);
+	computeToolBar->addAction(deleteAction);
+	computeToolBar->addAction(seedPoints);
+	computeToolBar->addAction(autoROI);
+	computeToolBar->addSeparator();
+	computeToolBar->addWidget(stepSizeSpinBox);
+	computeToolBar->addSeparator();
+	computeToolBar->addWidget(subSizeSpinBox);
+	computeToolBar->addSeparator();
+
+	// 连接按钮到设置绘制模式
+	connect(rectAction, &QAction::triggered, this, [=]() {
+		drawable1->setDrawMode(Drawable::Rectangle);
+		item1->setAcceptHoverEvents(true);
+		view1->viewport()->update();
+		});
+	connect(circleAction, &QAction::triggered, this, [=]() {
+		drawable1->setDrawMode(Drawable::Circle);
+		item1->setAcceptHoverEvents(true);
+		view1->viewport()->update();
+		});
+	connect(polygonAction, &QAction::triggered, this, [=]() {
+		drawable1->setDrawMode(Drawable::Polygon);
+		item1->setAcceptHoverEvents(true);
+		view1->viewport()->update();
+		});
+	connect(cropPolygonAction, &QAction::triggered, this, [=]() {
+		drawable1->setDrawMode(Drawable::ClipPolygon);
+		item1->setAcceptHoverEvents(true);
+		view1->viewport()->update();
+		});
+	connect(dragROIAction, &QAction::triggered, this, [=]() {
+		drawable1->setDrawMode(Drawable::Drag);
+		item1->setAcceptHoverEvents(true);
+		view1->viewport()->update();
+		});
+	connect(deleteAction, &QAction::triggered, this, [=]() {
+		drawable1->setDrawMode(Drawable::Delete);
+		item1->setAcceptHoverEvents(true);
+		view1->viewport()->update();
+		});
 
 
 	connect(CalibrationButton, &QAction::triggered, [=]() {
@@ -533,15 +610,15 @@ void StudyCorr::displayImages(const  cv::Mat& img)
 		return;
 	}
 
-		QPixmap pixmap1 = QPixmap::fromImage(img_qimg);
-		QPixmap scaledPixmap = pixmap1.scaled(view1->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+	QPixmap pixmap1 = QPixmap::fromImage(img_qimg);
+	QPixmap scaledPixmap = pixmap1.scaled(view1->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+	item1->setPixmap(scaledPixmap);
+
+	QMetaObject::invokeMethod(this, [=]() {
 		item1->setPixmap(scaledPixmap);
+		}, Qt::QueuedConnection);
 
-		QMetaObject::invokeMethod(this, [=]() {
-			item1->setPixmap(scaledPixmap);
-			}, Qt::QueuedConnection);
-
-		QCoreApplication::processEvents();
+	QCoreApplication::processEvents();
 }
 
 //显示左右两幅图像
@@ -552,28 +629,27 @@ void StudyCorr::displayImages(const  cv::Mat& img1, const  cv::Mat& img2)
 		return;
 	}
 
-	if (img1.empty()|| img1.empty() ) {
-		qDebug() << "图像为空，跳过。";
-		return;
-	}
-
 	QImage img1_qimg1 = cvMatToQImage(img1);
 	QImage img2_qimg2 = cvMatToQImage(img2);
-	if (img1_qimg1.isNull()|| img2_qimg2.isNull()) {
+	if (img1_qimg1.isNull() || img2_qimg2.isNull()) {
 		qDebug() << "图像转换失败，跳过。";
 		return;
 	}
 
 	QPixmap pixmap1 = QPixmap::fromImage(img1_qimg1);
 	QPixmap pixmap2 = QPixmap::fromImage(img2_qimg2);
-	QPixmap scaledPixmap1 = pixmap1.scaled(view1->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
-	QPixmap scaledPixmap2 = pixmap2.scaled(view2->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
-	item1->setPixmap(scaledPixmap1);
-	item2->setPixmap(scaledPixmap2);
+	//QPixmap scaledPixmap1 = pixmap1.scaled(view1->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+	//QPixmap scaledPixmap2 = pixmap2.scaled(view2->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+	//item1->setPixmap(scaledPixmap1);
+	//item2->setPixmap(scaledPixmap2);
+	item1->setPixmap(pixmap1);
+	item2->setPixmap(pixmap2);
 
 	QMetaObject::invokeMethod(this, [=]() {
-		item1->setPixmap(scaledPixmap1);
-		item2->setPixmap(scaledPixmap2);
+		//item1->setPixmap(scaledPixmap1);
+		//item2->setPixmap(scaledPixmap2);
+		item1->setPixmap(pixmap1);
+		item2->setPixmap(pixmap2);
 		}, Qt::QueuedConnection);
 
 	QCoreApplication::processEvents();
