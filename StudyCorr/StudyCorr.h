@@ -17,38 +17,40 @@ class StudyCorr : public QMainWindow
 public:
     StudyCorr(QWidget* parent = nullptr);
     ~StudyCorr();
-    static int CalibrationIndex;
-    static int ComputeIndex;
+	static int CalibrationIndex;//标定索引,用于区分不同的标定
+	static int ComputeIndex;//计算索引,用于区分不同的计算
 
 private:
-    CalibrationDialog* calibrationDialog;
-    ComputeDialog* computeDialog;
-    QStringList CalibrationFileNames;//储存标定文件信息
-    QStringList ComputeFileNames;//储存散斑文件信息
-    QStringList LeftCameraFilePath;
+    CalibrationDialog* calibrationDialog = nullptr;
+    ComputeDialog* computeDialog = nullptr;
+    QStringList LeftCameraFilePath;//储存标定文件信息
     QStringList RightCameraFilePath;
-    ChessCalibration* chessCalibration;
+    QMap<int, QPair<QStringList, QStringList>> calibrationImageFiles;
+    QStringList LeftComputeFilePath;//储存散斑文件信息
+    QStringList RightComputeFilePath;
+    QMap<int, QPair<QStringList, QStringList>> computeImageFiles;
+    ChessCalibration* chessCalibration = nullptr;
     //****************************************************工作区控件****************************************************//
-    QTabWidget* TabWidget;
-    QTreeWidget* TreeWidget1;
-    QTreeWidget* TreeWidget2;
+    QTabWidget* TabWidget = nullptr;
+    QTreeWidget* TreeWidget1 = nullptr;
+    QTreeWidget* TreeWidget2 = nullptr;
     //****************************************************状态栏****************************************************//
-    QAction* CalibrationButton;
-    QAction* ComputeButton;
-    QToolBar* chessToolBar;
-    QSpinBox* squareSizeSpinBox;
-    QSpinBox* rowsSpinBox;
-    QToolBar* computeToolBar;
-    QAction* rectAction;
-    QAction* circleAction ;
-    QAction* polygonAction ;
-    QAction* cropPolygonAction ;
-    QAction* dragROIAction ;
-    QAction* deleteAction;
-    QAction* seedPoints;
-    QAction* autoROI ;
-    QSpinBox* stepSizeSpinBox;
-    QSpinBox* subSizeSpinBox;
+    QAction* CalibrationButton = nullptr;
+    QAction* ComputeButton = nullptr;
+    QToolBar* chessToolBar = nullptr;
+    QSpinBox* squareSizeSpinBox = nullptr;
+    QSpinBox* rowsSpinBox = nullptr;
+    QToolBar* computeToolBar = nullptr;
+    QAction* rectAction = nullptr;
+    QAction* circleAction = nullptr;
+    QAction* polygonAction = nullptr;
+    QAction* cropPolygonAction = nullptr;
+    QAction* dragROIAction = nullptr;
+    QAction* deleteAction = nullptr;
+    QAction* seedPoints = nullptr;
+    QAction* autoROI = nullptr;
+    QSpinBox* stepSizeSpinBox = nullptr;
+    QSpinBox* subSizeSpinBox = nullptr;
     bool hasRunCalibrationToolbars = false;	// 添加一个布尔变量，确保只调用一次
     bool hasRunComputeToolbars = false;	// 添加一个布尔变量，确保只调用一次
     //****************************************************图像显示****************************************************//
@@ -89,8 +91,9 @@ private:
     //****************************************************绘图****************************************************//
     void displayImages(const  cv::Mat& img);
     void displayImages(const  cv::Mat& img1, const  cv::Mat& img2);
-    // cv::Mat 转换为 QImage
+    void displayImages(const  QPixmap& img1, const  QPixmap& img2);
     QImage cvMatToQImage(const cv::Mat& mat);
 
     //****************************************************ROI****************************************************//
+    void updateROICalculationPoints();
 };

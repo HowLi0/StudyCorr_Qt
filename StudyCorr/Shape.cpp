@@ -1,7 +1,31 @@
 ﻿#include "shape.h"
+#include "Drawable.h"
+#include <opencv2/opencv.hpp>
+
+cv::Mat QImageToCvMat(const QImage& image) {
+    return cv::Mat(image.height(), image.width(), CV_8UC4, (void*)image.bits(), image.bytesPerLine()).clone();
+}
+
+QImage CvMatToQImage(const cv::Mat& mat) {
+    return QImage(mat.data, mat.cols, mat.rows, mat.step, QImage::Format_ARGB32).copy();
+}
+
+void drawPointsOnImage(QPixmap& pixmap, const QVector<QPointF>& points) {
+    cv::Mat img = QImageToCvMat(pixmap.toImage()); // QPixmap 转 cv::Mat
+
+    for (const QPointF& point : points) {
+        cv::circle(img, cv::Point(point.x(), point.y()), 1, cv::Scalar(0, 0, 255), -1); // 红色点
+    }
+
+    pixmap = QPixmap::fromImage(CvMatToQImage(img)); // cv::Mat 转 QPixmap
+}
+
 
 // 矩形绘制器实现
-RectangleDrawer::RectangleDrawer(QGraphicsPixmapItem* parent) : pixmapItem(parent) {}
+RectangleDrawer::RectangleDrawer(QGraphicsPixmapItem* parent) : pixmapItem(parent)
+{
+    originalPixmap = pixmapItem->pixmap();
+}
 
 void RectangleDrawer::handleMousePress(QGraphicsSceneMouseEvent* event) {
     if (event->button() != Qt::LeftButton) return;
@@ -20,6 +44,7 @@ void RectangleDrawer::handleMousePress(QGraphicsSceneMouseEvent* event) {
         if (previewRect) {
             QGraphicsRectItem* finalRect = new QGraphicsRectItem(previewRect->rect(), pixmapItem);
             finalRect->setPen(QPen(Qt::red, 2));
+            finalRects.append(finalRect); // 添加到 QVector 中
             delete previewRect;
             previewRect = nullptr;
         }
@@ -34,8 +59,98 @@ void RectangleDrawer::handleMouseMove(const QPointF& scenePos) {
     previewRect->setRect(rect.normalized());
 }
 
+//void RectangleDrawer::updateCalculationPoints(int stepSize, int subSize) {
+//    if (finalRects.isEmpty()) return;
+//
+//    // **重置 pixmap，清除所有旧点**
+//    pixmapItem->setPixmap(originalPixmap);
+//    pixmapItem->update();
+//
+//    QPixmap pixmap = pixmapItem->pixmap(); // 获取原始 pixmap
+//    cv::Mat img = QImageToCvMat(pixmap.toImage()); // 转 OpenCV Mat
+//
+//    cv::Mat mask(img.rows, img.cols, CV_8UC1, cv::Scalar(0)); // 创建空白 mask
+//    QVector<QPointF> calculationPoints;
+//
+//    // 计算 ROI 内的点
+//    for (QGraphicsRectItem* rect : finalRects) {
+//        QRectF roi = rect->rect();
+//        cv::rectangle(mask,
+//            cv::Point(roi.left(), roi.top()),
+//            cv::Point(roi.right(), roi.bottom()),
+//            cv::Scalar(255), cv::FILLED);
+//    }
+//
+//    std::vector<cv::Point> points;
+//    cv::findNonZero(mask, points);
+//
+//    for (const cv::Point& pt : points) {
+//        if ((pt.x % stepSize == 0) && (pt.y % stepSize == 0)) {
+//            calculationPoints.append(QPointF(pt.x + subSize / 2, pt.y + subSize / 2));
+//        }
+//    }
+//
+//    // **清空并更新 Drawable 计算点**
+//    Drawable* drawable = dynamic_cast<Drawable*>(pixmapItem->parentItem());
+//    if (drawable) {
+//        drawable->calculationPoints.clear();
+//        drawable->calculationPoints = calculationPoints;
+//    }
+//
+//    // **绘制新点**
+//   drawPointsOnImage(pixmap, calculationPoints);
+//
+//    // 更新 pixmapItem
+//    pixmapItem->setPixmap(pixmap);
+//    pixmapItem->update();
+//}
+
+void RectangleDrawer::updateCalculationPoints(int stepSize, int subSize) {
+    if (finalRects.isEmpty()) return;
+
+    pixmapItem->setPixmap(originalPixmap);
+    pixmapItem->update();
+
+    QPixmap pixmap = pixmapItem->pixmap();
+    cv::Mat img = QImageToCvMat(pixmap.toImage());
+    cv::Mat mask(img.rows, img.cols, CV_8UC1, cv::Scalar(0));
+    QVector<QPointF> calculationPoints;
+
+    // 创建ROI的mask
+    for (QGraphicsRectItem* rect : finalRects) {
+        QRectF roi = rect->rect();
+        cv::rectangle(mask,
+            cv::Point(roi.left(), roi.top()),
+            cv::Point(roi.right(), roi.bottom()),
+            cv::Scalar(255), cv::FILLED);
+    }
+
+    // 按步长遍历窗口
+    for (int y = 0; y <= mask.rows - subSize; y += stepSize) {
+        for (int x = 0; x <= mask.cols - subSize; x += stepSize) {
+            cv::Rect window(x, y, subSize, subSize);
+            cv::Mat roiMask = mask(window);
+            if (cv::countNonZero(roiMask) == subSize * subSize) {
+                calculationPoints.append(QPointF(x + subSize / 2, y + subSize / 2));
+            }
+        }
+    }
+
+    Drawable* drawable = dynamic_cast<Drawable*>(pixmapItem->parentItem());
+    if (drawable) {
+        drawable->calculationPoints = calculationPoints;
+    }
+
+    drawPointsOnImage(pixmap, calculationPoints);
+    pixmapItem->setPixmap(pixmap);
+    pixmapItem->update();
+}
+
+
 // 圆形绘制器实现
-CircleDrawer::CircleDrawer(QGraphicsPixmapItem* parent) : pixmapItem(parent) {}
+CircleDrawer::CircleDrawer(QGraphicsPixmapItem* parent) : pixmapItem(parent) {
+    originalPixmap = pixmapItem->pixmap();
+}
 
 void CircleDrawer::handleMousePress(QGraphicsSceneMouseEvent* event) {
     if (event->button() != Qt::LeftButton) return;
@@ -57,6 +172,47 @@ void CircleDrawer::handleMouseMove(const QPointF& scenePos) {
         updateCircumcirclePreview(localPos);
     }
 }
+
+void CircleDrawer::updateCalculationPoints(int stepSize, int subSize) {
+    if (finalCircles.isEmpty()) return;
+
+    pixmapItem->setPixmap(originalPixmap);
+    pixmapItem->update();
+
+    QPixmap pixmap = pixmapItem->pixmap();
+    cv::Mat img = QImageToCvMat(pixmap.toImage());
+    cv::Mat mask(img.rows, img.cols, CV_8UC1, cv::Scalar(0));
+    QVector<QPointF> calculationPoints;
+
+    // 创建圆形区域的mask
+    for (QGraphicsEllipseItem* circle : finalCircles) {
+        QRectF rect = circle->rect();
+        cv::Point center(rect.center().x(), rect.center().y());
+        int radius = rect.width() / 2;
+        cv::circle(mask, center, radius, cv::Scalar(255), cv::FILLED);
+    }
+
+    // 按步长遍历窗口
+    for (int y = 0; y <= mask.rows - subSize; y += stepSize) {
+        for (int x = 0; x <= mask.cols - subSize; x += stepSize) {
+            cv::Rect window(x, y, subSize, subSize);
+            cv::Mat roiMask = mask(window);
+            if (cv::countNonZero(roiMask) == subSize * subSize) {
+                calculationPoints.append(QPointF(x + subSize / 2, y + subSize / 2));
+            }
+        }
+    }
+
+    Drawable* drawable = dynamic_cast<Drawable*>(pixmapItem->parentItem());
+    if (drawable) {
+        drawable->calculationPoints = calculationPoints;
+    }
+
+    drawPointsOnImage(pixmap, calculationPoints);
+    pixmapItem->setPixmap(pixmap);
+    pixmapItem->update();
+}
+
 
 void CircleDrawer::updateRadiusPreview(const QPointF& endPos)
 {
@@ -88,6 +244,7 @@ void CircleDrawer::createFinalCircle()
     if (calculateCircumcircle(circlePoints[0], circlePoints[1], circlePoints[2], center, radius)) {
         QGraphicsEllipseItem* ellipseItem = new QGraphicsEllipseItem(center.x() - radius, center.y() - radius, radius * 2, radius * 2, pixmapItem);
         ellipseItem->setPen(QPen(Qt::red, 2));
+        finalCircles.append(ellipseItem); // 添加到 QVector 中
     }
 }
 
@@ -113,7 +270,9 @@ void CircleDrawer::reset()
 }
 
 // 构造函数
-PolygonDrawer::PolygonDrawer(QGraphicsPixmapItem* parent) : pixmapItem(parent) {}
+PolygonDrawer::PolygonDrawer(QGraphicsPixmapItem* parent) : pixmapItem(parent) {
+    originalPixmap = pixmapItem->pixmap();
+}
 
 void PolygonDrawer::handleMousePress(QGraphicsSceneMouseEvent* event) {
     if (event->button() == Qt::LeftButton) {
@@ -138,6 +297,51 @@ void PolygonDrawer::handleMouseRelease(QGraphicsSceneMouseEvent* event) {
     // 无需处理
 }
 
+void PolygonDrawer::updateCalculationPoints(int stepSize, int subSize) {
+    if (finalPolygons.isEmpty()) return;
+
+    pixmapItem->setPixmap(originalPixmap);
+    pixmapItem->update();
+
+    QPixmap pixmap = pixmapItem->pixmap();
+    cv::Mat img = QImageToCvMat(pixmap.toImage());
+    cv::Mat mask(img.rows, img.cols, CV_8UC1, cv::Scalar(0));
+    QVector<QPointF> calculationPoints;
+
+    // 填充多边形区域到mask
+    for (QGraphicsPolygonItem* polygon : finalPolygons) {
+        QPolygonF poly = polygon->polygon();
+        std::vector<cv::Point> polyPoints;
+        for (const QPointF& p : poly) {
+            polyPoints.emplace_back(cv::Point(p.x(), p.y()));
+        }
+        const cv::Point* pts[] = { polyPoints.data() };
+        int numPoints[] = { static_cast<int>(polyPoints.size()) };
+        cv::fillPoly(mask, pts, numPoints, 1, cv::Scalar(255));
+    }
+
+    // 按步长遍历窗口
+    for (int y = 0; y <= mask.rows - subSize; y += stepSize) {
+        for (int x = 0; x <= mask.cols - subSize; x += stepSize) {
+            cv::Rect window(x, y, subSize, subSize);
+            cv::Mat roiMask = mask(window);
+            if (cv::countNonZero(roiMask) == subSize * subSize) {
+                calculationPoints.append(QPointF(x + subSize / 2, y + subSize / 2));
+            }
+        }
+    }
+
+    Drawable* drawable = dynamic_cast<Drawable*>(pixmapItem->parentItem());
+    if (drawable) {
+        drawable->calculationPoints = calculationPoints;
+    }
+
+    drawPointsOnImage(pixmap, calculationPoints);
+    pixmapItem->setPixmap(pixmap);
+    pixmapItem->update();
+}
+
+
 void PolygonDrawer::updatePolygonPreview(const QPointF& scenePos) {
     if (!currentPolygonItem) {
         currentPolygonItem = new QGraphicsPolygonItem(pixmapItem);
@@ -153,6 +357,7 @@ void PolygonDrawer::finalizePolygon() {
 
     QGraphicsPolygonItem* finalItem = new QGraphicsPolygonItem(currentPolygon, pixmapItem);
     finalItem->setPen(QPen(Qt::red, 2));
+    finalPolygons.append(finalItem); // 添加到 QVector 中
 }
 
 void PolygonDrawer::reset() {
@@ -161,7 +366,9 @@ void PolygonDrawer::reset() {
     currentPolygonItem = nullptr;
 }
 
-ClipPolygonDrawer::ClipPolygonDrawer(QGraphicsPixmapItem* parent) : pixmapItem(parent) {}
+ClipPolygonDrawer::ClipPolygonDrawer(QGraphicsPixmapItem* parent) : pixmapItem(parent) {
+    originalPixmap = pixmapItem->pixmap();
+}
 
 void ClipPolygonDrawer::handleMousePress(QGraphicsSceneMouseEvent* event) {
     if (event->button() == Qt::LeftButton) {
@@ -185,6 +392,52 @@ void ClipPolygonDrawer::handleMouseMove(const QPointF& scenePos)
 void ClipPolygonDrawer::handleMouseRelease(QGraphicsSceneMouseEvent* event)
 {
 }
+
+void ClipPolygonDrawer::updateCalculationPoints(int stepSize, int subSize) {
+    if (finalClipPolygons.isEmpty()) return;
+
+    pixmapItem->setPixmap(originalPixmap);
+    pixmapItem->update();
+
+    QPixmap pixmap = pixmapItem->pixmap();
+    cv::Mat img = QImageToCvMat(pixmap.toImage());
+    cv::Mat mask(img.rows, img.cols, CV_8UC1, cv::Scalar(0));
+    QVector<QPointF> calculationPoints;
+
+    // 遍历最终裁剪多边形并填充 mask
+    for (QGraphicsPathItem* polygon : finalClipPolygons) {
+        QPainterPath path = polygon->path();
+        QPolygonF poly = path.toFillPolygon();
+        std::vector<cv::Point> polyPoints;
+        for (const QPointF& p : poly) {
+            polyPoints.emplace_back(cv::Point(p.x(), p.y()));
+        }
+        const cv::Point* pts[] = { polyPoints.data() };
+        int numPoints[] = { static_cast<int>(polyPoints.size()) };
+        cv::fillPoly(mask, pts, numPoints, 1, cv::Scalar(255));
+    }
+
+    // 按步长遍历窗口
+    for (int y = 0; y <= mask.rows - subSize; y += stepSize) {
+        for (int x = 0; x <= mask.cols - subSize; x += stepSize) {
+            cv::Rect window(x, y, subSize, subSize);
+            cv::Mat roiMask = mask(window);
+            if (cv::countNonZero(roiMask) == subSize * subSize) {
+                calculationPoints.append(QPointF(x + subSize / 2, y + subSize / 2));
+            }
+        }
+    }
+
+    Drawable* drawable = dynamic_cast<Drawable*>(pixmapItem->parentItem());
+    if (drawable) {
+        drawable->calculationPoints = calculationPoints;
+    }
+
+    drawPointsOnImage(pixmap, calculationPoints);
+    pixmapItem->setPixmap(pixmap);
+    pixmapItem->update();
+}
+
 
 void ClipPolygonDrawer::updateClipPreview(const QPointF& scenePos) {
     if (!previewClipItem) {
@@ -214,7 +467,7 @@ void ClipPolygonDrawer::finalizeClip() {
         if (!intersected.isEmpty()) {
             // 创建新的路径项并继承原样式
             QGraphicsPathItem* newItem = new QGraphicsPathItem(intersected, pixmapItem);
-
+			finalClipPolygons.append(newItem);
             // 复制原项的样式
             if (auto shapeItem = dynamic_cast<QAbstractGraphicsShapeItem*>(item)) {
                 newItem->setPen(shapeItem->pen());
@@ -244,8 +497,18 @@ void DeleteDrawer::handleMousePress(QGraphicsSceneMouseEvent* event) {
                 delete clickedItem;
             }
         }
-        else {
-            qDebug() << "Scene is not initialized!";
+        Drawable* drawable = dynamic_cast<Drawable*>(pixmapItem->parentItem());
+        if (drawable) {
+            QPointF clickPos = pixmapItem->mapFromScene(event->scenePos());
+            drawable->calculationPoints.erase(
+                std::remove_if(drawable->calculationPoints.begin(), drawable->calculationPoints.end(),
+                    [&](const QPointF& p) { return QLineF(p, clickPos).length() < 5; }),
+                drawable->calculationPoints.end());
+
+            QPixmap pixmap = pixmapItem->pixmap();
+            drawPointsOnImage(pixmap, drawable->calculationPoints);
+            pixmapItem->setPixmap(pixmap);
+            pixmapItem->update();
         }
     }
 }
@@ -299,3 +562,18 @@ void DragDrawer::handleMouseRelease(QGraphicsSceneMouseEvent* event) {
     draggedItem = nullptr;  // 释放拖拽项
 }
 
+void DragDrawer::updateCalculationPoints(int stepSize, int subSize) {
+    Drawable* drawable = dynamic_cast<Drawable*>(pixmapItem->parentItem());
+    if (!drawable) return;
+
+    QVector<QPointF> updatedPoints;
+    for (const QPointF& point : drawable->calculationPoints) {
+        updatedPoints.append(point + draggedItem->scenePos() - itemStartPos);
+    }
+    drawable->calculationPoints = updatedPoints;
+
+    QPixmap pixmap = pixmapItem->pixmap();
+    drawPointsOnImage(pixmap, updatedPoints);
+    pixmapItem->setPixmap(pixmap);
+    pixmapItem->update();
+}

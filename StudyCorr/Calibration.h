@@ -22,11 +22,11 @@ public:
     ChessCalibration(int rows,int cols,float squareSize, QStringList chessPath);
     ChessCalibration(int rows, int cols, float squareSize, QStringList chessPathLeft, QStringList chessPathRight);
     ~ChessCalibration();
-    bool prefareMonocularCalibration();
-    void startMonocularCompute();
+	bool prefareMonocularCalibration();//准备单目标定
+	void startMonocularCompute();//开始单目标定
     cv::Mat computeProjMatrix(const cv::Mat R, const cv::Mat T, const cv::Mat cameraMatrix) const;//重投影矩阵
-    bool prefareStereoCalibration();
-    void startStereoCalibration();
+	bool prefareStereoCalibration();//准备双目标定
+	void startStereoCalibration();//开始双目标定
     void drawCornersAndAxes(cv::Mat& img, const std::vector<cv::Point2f>& corners, cv::Size boardSize, bool found);
     std::vector<cv::Mat> img1_frames;//用于储存drawCornersAndAxes绘制的图片
     std::vector<cv::Mat> img2_frames;

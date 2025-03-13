@@ -41,7 +41,7 @@
     <QtBuildConfig>debug</QtBuildConfig>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'" Label="QtSettings">
-    <QtInstall>6.7.2_msvc2019_64</QtInstall>
+    <QtInstall>6.7.0_msvc2019_64</QtInstall>
     <QtModules>core;gui;widgets</QtModules>
     <QtBuildConfig>release</QtBuildConfig>
   </PropertyGroup>
@@ -106,8 +106,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\一些代码C++\标定.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="customPixmapItem.cpp" />
     <ClCompile Include="Drawable.cpp" />
+    <ClCompile Include="sc_array.cpp" />
+    <ClCompile Include="sc_cubic_bspline.cpp" />
+    <ClCompile Include="sc_deformation.cpp" />
+    <ClCompile Include="sc_gradient.cpp" />
+    <ClCompile Include="sc_image.cpp" />
+    <ClCompile Include="sc_poi.cpp" />
+    <ClCompile Include="sc_point.cpp" />
+    <ClCompile Include="sc_subset.cpp" />
     <ClCompile Include="Shape.cpp" />
     <ClCompile Include="边缘检测.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -163,6 +175,15 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="customPixmapItem.h" />
+    <ClInclude Include="sc_array.h" />
+    <ClInclude Include="sc_cubic_bspline.h" />
+    <ClInclude Include="sc_deformation.h" />
+    <ClInclude Include="sc_gradient.h" />
+    <ClInclude Include="sc_image.h" />
+    <ClInclude Include="sc_interpolation.h" />
+    <ClInclude Include="sc_poi.h" />
+    <ClInclude Include="sc_point.h" />
+    <ClInclude Include="sc_subset.h" />
     <ClInclude Include="Shape.h" />
     <QtMoc Include="Drawable.h" />
   </ItemGroup>

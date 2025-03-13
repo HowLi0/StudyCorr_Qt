@@ -33,10 +33,10 @@
     <Filter Include="Source Files\Calibration">
       <UniqueIdentifier>{12485c8c-3d2d-4ce8-bbdd-245bf59bbea0}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\ROI">
+    <Filter Include="Header Files\DIC">
       <UniqueIdentifier>{c7e78ab6-2409-4cb5-b3fb-76ddf766bfd8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\ROI">
+    <Filter Include="Source Files\DIC">
       <UniqueIdentifier>{d1283a0e-6299-4cf4-a4f8-63415c734f50}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -80,13 +80,40 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Drawable.cpp">
-      <Filter>Source Files\ROI</Filter>
+      <Filter>Source Files\DIC</Filter>
     </ClCompile>
     <ClCompile Include="Shape.cpp">
-      <Filter>Source Files\ROI</Filter>
+      <Filter>Source Files\DIC</Filter>
     </ClCompile>
     <ClCompile Include="customPixmapItem.cpp">
-      <Filter>Source Files\ROI</Filter>
+      <Filter>Source Files\DIC</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\一些代码C++\标定.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sc_array.cpp">
+      <Filter>Source Files\DIC</Filter>
+    </ClCompile>
+    <ClCompile Include="sc_point.cpp">
+      <Filter>Source Files\DIC</Filter>
+    </ClCompile>
+    <ClCompile Include="sc_poi.cpp">
+      <Filter>Source Files\DIC</Filter>
+    </ClCompile>
+    <ClCompile Include="sc_deformation.cpp">
+      <Filter>Source Files\DIC</Filter>
+    </ClCompile>
+    <ClCompile Include="sc_image.cpp">
+      <Filter>Source Files\DIC</Filter>
+    </ClCompile>
+    <ClCompile Include="sc_subset.cpp">
+      <Filter>Source Files\DIC</Filter>
+    </ClCompile>
+    <ClCompile Include="sc_gradient.cpp">
+      <Filter>Source Files\DIC</Filter>
+    </ClCompile>
+    <ClCompile Include="sc_cubic_bspline.cpp">
+      <Filter>Source Files\DIC</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -103,7 +130,7 @@
       <Filter>Source Files</Filter>
     </QtMoc>
     <QtMoc Include="Drawable.h">
-      <Filter>Header Files\ROI</Filter>
+      <Filter>Header Files\DIC</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>
@@ -114,10 +141,37 @@
       <Filter>Header Files\Calibration</Filter>
     </ClInclude>
     <ClInclude Include="customPixmapItem.h">
-      <Filter>Header Files\ROI</Filter>
+      <Filter>Header Files\DIC</Filter>
     </ClInclude>
     <ClInclude Include="Shape.h">
-      <Filter>Header Files\ROI</Filter>
+      <Filter>Header Files\DIC</Filter>
+    </ClInclude>
+    <ClInclude Include="sc_array.h">
+      <Filter>Header Files\DIC</Filter>
+    </ClInclude>
+    <ClInclude Include="sc_point.h">
+      <Filter>Header Files\DIC</Filter>
+    </ClInclude>
+    <ClInclude Include="sc_poi.h">
+      <Filter>Header Files\DIC</Filter>
+    </ClInclude>
+    <ClInclude Include="sc_deformation.h">
+      <Filter>Header Files\DIC</Filter>
+    </ClInclude>
+    <ClInclude Include="sc_image.h">
+      <Filter>Header Files\DIC</Filter>
+    </ClInclude>
+    <ClInclude Include="sc_subset.h">
+      <Filter>Header Files\DIC</Filter>
+    </ClInclude>
+    <ClInclude Include="sc_gradient.h">
+      <Filter>Header Files\DIC</Filter>
+    </ClInclude>
+    <ClInclude Include="sc_cubic_bspline.h">
+      <Filter>Header Files\DIC</Filter>
+    </ClInclude>
+    <ClInclude Include="sc_interpolation.h">
+      <Filter>Header Files\DIC</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

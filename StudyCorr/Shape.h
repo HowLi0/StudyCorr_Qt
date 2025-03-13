@@ -5,6 +5,7 @@
 #include <QGraphicsEllipseItem>
 #include <QGraphicsPolygonItem>
 #include <QPen>
+#include<QPainter>
 #include <QDebug>
 #include <QtMath>
 #include <QGraphicsPathItem>
@@ -17,6 +18,7 @@ public:
     virtual void handleMousePress(QGraphicsSceneMouseEvent* event) = 0;
     virtual void handleMouseMove(const QPointF& scenePos) = 0;
     virtual void handleMouseRelease(QGraphicsSceneMouseEvent* event) = 0;
+    virtual void updateCalculationPoints(int stepSize, int subSize) = 0;
 };
 
 // 矩形绘制器
@@ -26,7 +28,10 @@ public:
     void handleMousePress(QGraphicsSceneMouseEvent* event) override;
     void handleMouseMove(const QPointF& scenePos) override;
     void handleMouseRelease(QGraphicsSceneMouseEvent* event) override {};
+    void updateCalculationPoints(int stepSize, int subSize) override; 
+    QVector<QGraphicsRectItem*> finalRects; // 存储多个最终绘制的矩形
 private:
+	QPixmap originalPixmap;
     QGraphicsPixmapItem* pixmapItem;
     QPointF startPoint;
     QGraphicsRectItem* previewRect = nullptr;
@@ -40,7 +45,10 @@ public:
     void handleMousePress(QGraphicsSceneMouseEvent* event) override;
     void handleMouseMove(const QPointF& scenePos) override;
     void handleMouseRelease(QGraphicsSceneMouseEvent* event) override {};
+    void updateCalculationPoints(int stepSize, int subSize) override;
+    QVector<QGraphicsEllipseItem*> finalCircles; // 存储多个最终绘制的圆形
 private:
+    QPixmap originalPixmap;
     QGraphicsPixmapItem* pixmapItem;
     QList<QPointF> circlePoints;
     QGraphicsEllipseItem* previewCircle = nullptr;
@@ -58,7 +66,10 @@ public:
     void handleMousePress(QGraphicsSceneMouseEvent* event) override;
     void handleMouseMove(const QPointF& scenePos) override;
     void handleMouseRelease(QGraphicsSceneMouseEvent* event) override;
+    void updateCalculationPoints(int stepSize, int subSize) override;
+    QVector<QGraphicsPolygonItem*> finalPolygons; // 存储多个最终绘制的多边形
 private:
+    QPixmap originalPixmap;
     QGraphicsPixmapItem* pixmapItem;
     QPolygonF currentPolygon;
     QGraphicsPolygonItem* currentPolygonItem = nullptr;
@@ -75,7 +86,10 @@ public:
     void handleMousePress(QGraphicsSceneMouseEvent* event) override;
     void handleMouseMove(const QPointF& scenePos) override;
     void handleMouseRelease(QGraphicsSceneMouseEvent* event) override;
+    void updateCalculationPoints(int stepSize, int subSize) override;
+    QVector<QGraphicsPathItem*> finalClipPolygons; // 存储多个最终绘制的裁剪多边形
 private:
+    QPixmap originalPixmap;
     QGraphicsPixmapItem* pixmapItem;
     QPolygonF clipPolygon;
     QGraphicsPolygonItem* previewClipItem = nullptr;
@@ -91,6 +105,7 @@ public:
     void handleMousePress(QGraphicsSceneMouseEvent* event) override;
     void handleMouseMove(const QPointF&) override {}
     void handleMouseRelease(QGraphicsSceneMouseEvent*) override {}
+    void updateCalculationPoints(int stepSize, int subSize) override {};
 private:
     QGraphicsPixmapItem* pixmapItem;
 };
@@ -102,6 +117,7 @@ public:
     void handleMousePress(QGraphicsSceneMouseEvent* event) override;
     void handleMouseMove(const QPointF& scenePos) override;
     void handleMouseRelease(QGraphicsSceneMouseEvent* event) override;
+    void updateCalculationPoints(int stepSize, int subSize) override;
 private:
     QGraphicsPixmapItem* pixmapItem;
     QGraphicsItem* draggedItem = nullptr;  // 当前被拖拽的图形项

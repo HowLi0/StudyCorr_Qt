@@ -1,14 +1,15 @@
 ﻿#include "StudyCorr.h"
 
-int StudyCorr::CalibrationIndex = 1;
-int StudyCorr::ComputeIndex = 1;
+int StudyCorr::CalibrationIndex = 0;
+int StudyCorr::ComputeIndex = 0;
 
 StudyCorr::StudyCorr(QWidget* parent)
 	: QMainWindow(parent)
 {
 	ui.setupUi(this);
 	resize(1200, 800);
-	this->CalibrationIndex = 1;
+	this->CalibrationIndex = 0;
+	this->ComputeIndex = 0;
 	SetupUi(this->CalibrationIndex, this->ComputeIndex);
 }
 
@@ -119,6 +120,8 @@ void StudyCorr::SetupUi(int CalibrationIndex, int ComputeIndex)
 	// 加载图像并添加到场景中
 	this->item1 = new CustomPixmapItem();
 	this->item2 = new CustomPixmapItem();
+	item1->setAcceptHoverEvents(true);
+	item2->setAcceptHoverEvents(true);
 	scene1->addItem(item1);
 	scene2->addItem(item2);
 	scene1->setSceneRect(item1->boundingRect());
@@ -132,6 +135,10 @@ void StudyCorr::SetupUi(int CalibrationIndex, int ComputeIndex)
 	this->view2 = new QGraphicsView(scene2, this);
 	view1->fitInView(scene1->sceneRect(), Qt::KeepAspectRatio);
 	view2->fitInView(scene2->sceneRect(), Qt::KeepAspectRatio);
+	view1->setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
+	view1->setResizeAnchor(QGraphicsView::AnchorViewCenter);
+	view2->setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
+	view2->setResizeAnchor(QGraphicsView::AnchorViewCenter);
 
 	//显示图像名称
 	this->img1TextItem = new QGraphicsTextItem();
@@ -261,8 +268,12 @@ void StudyCorr::CalibrationOKButtonClicked()
 {
 	qDebug() << "Dialog accepted, running onOkClicked";
 	if (calibrationDialog) {
+		LeftCameraFilePath.clear();
+		RightCameraFilePath.clear();
 		LeftCameraFilePath = calibrationDialog->GetLeftFilePath();
 		RightCameraFilePath = calibrationDialog->GetRightFilePath();// 获取文件名列表
+		//qDebug() << "LeftCameraFilePath: " << LeftCameraFilePath;
+		calibrationImageFiles[CalibrationIndex] = qMakePair(LeftCameraFilePath, RightCameraFilePath);
 		// 添加顶层项
 		QTreeWidgetItem* CalibrationItem = new QTreeWidgetItem(QStringList(calibrationDialog->NameLineEdit->text()));
 		TreeWidget1->addTopLevelItem(CalibrationItem);
@@ -369,7 +380,7 @@ void StudyCorr::ChessToolBar()
 	this->rowsSpinBox = new QSpinBox(this);
 	rowsSpinBox->setMinimum(1);
 	rowsSpinBox->setMaximum(1000);
-	rowsSpinBox->setValue(12); // 默认行数
+	rowsSpinBox->setValue(11); // 默认行数
 	rowsSpinBox->setSuffix("行");
 	rowsSpinBox->setToolTip("输入棋盘格的角点行数");
 	rowsSpinBox->setFixedWidth(100);
@@ -377,7 +388,7 @@ void StudyCorr::ChessToolBar()
 	QSpinBox* colsSpinBox = new QSpinBox(this);
 	colsSpinBox->setMinimum(1);
 	colsSpinBox->setMaximum(1000);
-	colsSpinBox->setValue(11); // 默认列数
+	colsSpinBox->setValue(8); // 默认列数
 	colsSpinBox->setSuffix("列");
 	colsSpinBox->setToolTip("输入棋盘格的角点列数");
 	colsSpinBox->setFixedWidth(100);
@@ -391,10 +402,12 @@ void StudyCorr::ChessToolBar()
 	QAction* StartCalibrationButton = chessToolBar->addAction("开始标定");
 	StartCalibrationButton->setIcon(QIcon("icon/9.png"));
 
-	connect(ComputeButton, &QAction::triggered, [=]() {
+	connect(ComputeButton, &QAction::triggered, [=]()
+	{
 		chessToolBar->hide();
 		computeToolBar->show(); }
 	);
+	//click start calibration button then start calibration
 	connect(StartCalibrationButton, &QAction::triggered, [=]()
 		{
 			chessCalibration = new ChessCalibration(rowsSpinBox->value(), colsSpinBox->value(), squareSizeSpinBox->value(), LeftCameraFilePath, RightCameraFilePath);
@@ -462,7 +475,13 @@ void StudyCorr::ComputeButtonClicked(int ComputeIndex)
 	dialog->setAttribute(Qt::WA_DeleteOnClose);
 
 	// Connect accepted signal to onOkClicked slot
-	connect(dialog, &ComputeDialog::accepted, this, &StudyCorr::ComputeOKButtonClicked);
+	connect(dialog, &ComputeDialog::accepted,  [=]() {
+		this->ComputeOKButtonClicked();
+		QPixmap ref_img = QPixmap(QString(LeftComputeFilePath[currentFrameIndex])); // 参考图像
+		QPixmap tar_img = QPixmap(QString(RightComputeFilePath[currentFrameIndex])); // 目标图像
+		qDebug() << "ref_img: " << LeftComputeFilePath;
+		displayImages(ref_img , tar_img);
+	});
 
 	computeDialog = dialog;
 
@@ -478,7 +497,12 @@ void StudyCorr::ComputeOKButtonClicked()
 {
 	qDebug() << "Dialog accepted, running onOkClicked";
 	if (computeDialog) {
-		ComputeFileNames = computeDialog->GetLeftFileNames();  // 获取文件名列表
+		LeftComputeFilePath.clear();
+		RightComputeFilePath.clear();
+		LeftComputeFilePath = computeDialog->GetLeftFilePath();
+		RightComputeFilePath = computeDialog->GetRightFilePath();// 获取文件名列表
+		qDebug() << "LeftComputeFilePath: " << LeftComputeFilePath;
+		computeImageFiles[ComputeIndex] = qMakePair(LeftComputeFilePath, RightComputeFilePath);
 
 		// 添加顶层项
 		QTreeWidgetItem* ComputeItem = new QTreeWidgetItem(QStringList(computeDialog->NameLineEdit->text()));
@@ -551,37 +575,34 @@ void StudyCorr::ComputeToolBar()
 	computeToolBar->addWidget(subSizeSpinBox);
 	computeToolBar->addSeparator();
 
-	// 连接按钮到设置绘制模式
+	// 连接按钮到设置绘制模式,setAcceptHoverEvents(true)：接受鼠标悬停事件
 	connect(rectAction, &QAction::triggered, this, [=]() {
 		drawable1->setDrawMode(Drawable::Rectangle);
-		item1->setAcceptHoverEvents(true);
 		view1->viewport()->update();
 		});
 	connect(circleAction, &QAction::triggered, this, [=]() {
 		drawable1->setDrawMode(Drawable::Circle);
-		item1->setAcceptHoverEvents(true);
 		view1->viewport()->update();
 		});
 	connect(polygonAction, &QAction::triggered, this, [=]() {
 		drawable1->setDrawMode(Drawable::Polygon);
-		item1->setAcceptHoverEvents(true);
 		view1->viewport()->update();
 		});
 	connect(cropPolygonAction, &QAction::triggered, this, [=]() {
 		drawable1->setDrawMode(Drawable::ClipPolygon);
-		item1->setAcceptHoverEvents(true);
 		view1->viewport()->update();
 		});
 	connect(dragROIAction, &QAction::triggered, this, [=]() {
 		drawable1->setDrawMode(Drawable::Drag);
-		item1->setAcceptHoverEvents(true);
 		view1->viewport()->update();
 		});
 	connect(deleteAction, &QAction::triggered, this, [=]() {
 		drawable1->setDrawMode(Drawable::Delete);
-		item1->setAcceptHoverEvents(true);
 		view1->viewport()->update();
 		});
+
+	connect(stepSizeSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this, &StudyCorr::updateROICalculationPoints);
+	connect(subSizeSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this, &StudyCorr::updateROICalculationPoints);
 
 
 	connect(CalibrationButton, &QAction::triggered, [=]() {
@@ -609,16 +630,10 @@ void StudyCorr::displayImages(const  cv::Mat& img)
 		qDebug() << "图像转换失败，跳过。";
 		return;
 	}
-
-	QPixmap pixmap1 = QPixmap::fromImage(img_qimg);
-	QPixmap scaledPixmap = pixmap1.scaled(view1->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
-	item1->setPixmap(scaledPixmap);
-
-	QMetaObject::invokeMethod(this, [=]() {
-		item1->setPixmap(scaledPixmap);
-		}, Qt::QueuedConnection);
-
-	QCoreApplication::processEvents();
+	item1->setPixmap(QPixmap::fromImage(img_qimg));
+	// 调整视图缩放并居中
+	view1->fitInView(item1, Qt::KeepAspectRatio);
+	view2->fitInView(item2, Qt::KeepAspectRatio);
 }
 
 //显示左右两幅图像
@@ -636,23 +651,28 @@ void StudyCorr::displayImages(const  cv::Mat& img1, const  cv::Mat& img2)
 		return;
 	}
 
-	QPixmap pixmap1 = QPixmap::fromImage(img1_qimg1);
-	QPixmap pixmap2 = QPixmap::fromImage(img2_qimg2);
-	//QPixmap scaledPixmap1 = pixmap1.scaled(view1->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
-	//QPixmap scaledPixmap2 = pixmap2.scaled(view2->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
-	//item1->setPixmap(scaledPixmap1);
-	//item2->setPixmap(scaledPixmap2);
-	item1->setPixmap(pixmap1);
-	item2->setPixmap(pixmap2);
+	// ... 加载QPixmap（不缩放）
+	item1->setPixmap(QPixmap::fromImage(img1_qimg1));
+	item2->setPixmap(QPixmap::fromImage(img2_qimg2));
 
-	QMetaObject::invokeMethod(this, [=]() {
-		//item1->setPixmap(scaledPixmap1);
-		//item2->setPixmap(scaledPixmap2);
-		item1->setPixmap(pixmap1);
-		item2->setPixmap(pixmap2);
-		}, Qt::QueuedConnection);
+	// 调整视图缩放并居中
+	view1->fitInView(item1, Qt::KeepAspectRatio);
+	view2->fitInView(item2, Qt::KeepAspectRatio);
+	view1->setAlignment(Qt::AlignCenter);
+	view2->setAlignment(Qt::AlignCenter);
+}
 
-	QCoreApplication::processEvents();
+void StudyCorr::displayImages(const QPixmap& img1, const QPixmap& img2)
+{
+	// ... 加载QPixmap
+	item1->setPixmap(img1);
+	item2->setPixmap(img2);
+
+	// 调整视图缩放并居中
+	view1->fitInView(item1, Qt::KeepAspectRatio);
+	view2->fitInView(item2, Qt::KeepAspectRatio);
+	view1->setAlignment(Qt::AlignCenter);
+	view2->setAlignment(Qt::AlignCenter);
 }
 
 //CV::Mat转QImage
@@ -676,6 +696,17 @@ QImage StudyCorr::cvMatToQImage(const cv::Mat& mat)
 		return QImage();
 	}
 }
+
+//****************************************************ROI****************************************************//
+// 更新ROI计算点
+void StudyCorr::updateROICalculationPoints()
+{
+	int stepSize = stepSizeSpinBox->value();
+	int subSize = subSizeSpinBox->value();
+	drawable1->updateCalculationPoints(stepSize, subSize);
+	view1->viewport()->update();
+}
+
 
 
 

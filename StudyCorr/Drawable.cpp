@@ -1,4 +1,5 @@
 ﻿#include "Drawable.h"
+#include "Shape.h"
 
 Drawable::Drawable(QGraphicsPixmapItem* pixmapItem) : pixmapItem(pixmapItem), shapeDrawer(nullptr) {}
 
@@ -46,4 +47,15 @@ void Drawable::handleMouseRelease(QGraphicsSceneMouseEvent* event) {
 void Drawable::resetDrawing() {
     delete shapeDrawer;
     shapeDrawer = nullptr;
+}
+
+void Drawable::updateCalculationPoints(int stepSize, int subSize) {
+    calculationPoints.clear();
+    if (shapeDrawer) {
+        shapeDrawer->updateCalculationPoints(stepSize, subSize);
+    }
+}
+
+QVector<QPointF> Drawable::getCalculationPoints() const {
+    return calculationPoints;
 }
